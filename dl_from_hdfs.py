@@ -10,15 +10,23 @@ campaign = sys.argv[1]
 file_format = sys.argv[2]
 api_key = sys.argv[3]
 
+if len(sys.argv) >= 5:
+    filename_contains = sys.argv[4]
+else:
+    filename_contains = None
+
 url = 'https://observatory.mami-project.eu/hdfs/fs/{cmd}/{campaign}/{file_format}'
 
-def get_remote_file_list():
+def get_remote_file_list(filterexp):
     ls_url = url.format(cmd='ls', campaign=campaign, file_format=file_format)
     headers = {'X-API-KEY': api_key}
     response = requests.get(ls_url, headers=headers, verify=False)
     
     filenames = response.text.strip().strip('[]').split(',')
     filenames = [x.strip('"') for x in filenames]
+
+    if filterexp:
+        filenames = filter(lambda x: str(x).find(filterexp) >= 0, filenames)
 
     return set(filenames)
 
@@ -36,7 +44,7 @@ def fetch_file(filename):
         destination_file.write(response.content)
 
 if __name__ == "__main__":
-    remote_files = get_remote_file_list()
+    remote_files = get_remote_file_list(filename_contains)
     local_files = get_local_file_list()
     
     missing_files = remote_files.difference(local_files)
